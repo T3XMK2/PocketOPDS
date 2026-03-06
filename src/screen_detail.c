@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <inkview.h>
 #include "app.h"
 #include "opds.h"
@@ -100,7 +101,90 @@ static const char *mime_to_ext(const char *mime)
 }
 
 
-/* ── Perform the download ────────────────────────────────────────────────── */
+#include <dirent.h>
+
+/* ── Author folder matching ──────────────────────────────────────────────── */
+
+/* Build a sorted word-set from a name string into words[]/nwords.
+ * Strips punctuation, lowercases, splits on spaces.
+ * words[] entries point into buf[] which must be at least strlen(name)+1. */
+#define MAX_NAME_WORDS 16
+
+static int name_to_words(const char *name, char *buf,
+                         char *words[], int max_words)
+{
+    /* Copy and lowercase, replacing punctuation with spaces */
+    size_t i;
+    for (i = 0; name[i] && i < strlen(name); i++) {
+        unsigned char c = (unsigned char)name[i];
+        if (c == ',' || c == '.' || c == '-' || c == '_' || c == '\'')
+            buf[i] = ' ';
+        else
+            buf[i] = (char)tolower(c);
+    }
+    buf[i] = '\0';
+
+    /* Split on spaces */
+    int n = 0;
+    char *p = buf;
+    while (*p && n < max_words) {
+        while (*p == ' ') p++;
+        if (!*p) break;
+        words[n++] = p;
+        while (*p && *p != ' ') p++;
+        if (*p) *p++ = '\0';
+    }
+    return n;
+}
+
+/* Return 1 if two name strings produce the same word set. */
+static int author_names_match(const char *a, const char *b)
+{
+    char bufa[256], bufb[256];
+    char *wa[MAX_NAME_WORDS], *wb[MAX_NAME_WORDS];
+    int  na, nb;
+
+    strncpy(bufa, a, sizeof(bufa) - 1);
+    strncpy(bufb, b, sizeof(bufb) - 1);
+
+    na = name_to_words(bufa, bufa, wa, MAX_NAME_WORDS);
+    nb = name_to_words(bufb, bufb, wb, MAX_NAME_WORDS);
+
+    if (na != nb || na == 0) return 0;
+
+    /* For each word in a, find it in b (O(n²), fine for ≤16 words) */
+    for (int i = 0; i < na; i++) {
+        int found = 0;
+        for (int j = 0; j < nb; j++)
+            if (wb[j] && strcmp(wa[i], wb[j]) == 0) { wb[j] = NULL; found = 1; break; }
+        if (!found) return 0;
+    }
+    return 1;
+}
+
+/* Find an existing subfolder of BOOKS_DIR whose name is a word-set match
+ * for author.  Writes the matched folder name into out[out_size].
+ * Returns 1 on match, 0 if none found. */
+static int find_author_folder(const char *author, char *out, size_t out_size)
+{
+    DIR *d = opendir(BOOKS_DIR);
+    if (!d) return 0;
+
+    struct dirent *e;
+    while ((e = readdir(d)) != NULL) {
+        if (e->d_name[0] == '.') continue;
+        if (author_names_match(author, e->d_name)) {
+            strncpy(out, e->d_name, out_size - 1);
+            out[out_size - 1] = '\0';
+            closedir(d);
+            return 1;
+        }
+    }
+    closedir(d);
+    return 0;
+}
+
+
 
 static void do_download(detail_state_t *ds, const char *dl_url,
                         const char *dl_mime)
@@ -115,12 +199,18 @@ static void do_download(detail_state_t *ds, const char *dl_url,
         return;
     }
 
-    /* Build author subfolder: Books/<Author>/ or Books/Unknown Author/ */
+    /* Build author subfolder: try to match an existing folder by word-set,
+     * otherwise create a new one with the sanitized OPDS author name. */
     char safe_author[128];
-    if (ds->entry.author[0])
-        sanitize_filename(ds->entry.author, safe_author, sizeof(safe_author));
-    else
+    if (ds->entry.author[0]) {
+        char matched[128] = {0};
+        if (find_author_folder(ds->entry.author, matched, sizeof(matched)))
+            strncpy(safe_author, matched, sizeof(safe_author) - 1);
+        else
+            sanitize_filename(ds->entry.author, safe_author, sizeof(safe_author));
+    } else {
         strncpy(safe_author, "Unknown Author", sizeof(safe_author) - 1);
+    }
 
     char dest_dir[384];
     snprintf(dest_dir, sizeof(dest_dir), "%s/%s", BOOKS_DIR, safe_author);
