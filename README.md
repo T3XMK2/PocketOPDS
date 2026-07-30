@@ -4,10 +4,10 @@ PocketOPDS is a native OPDS catalog browser and book downloader for PocketBook
 e-readers. It is designed for slow e-ink displays, physical page keys, and
 touch interaction without requiring KOReader or a web browser.
 
-The current interface uses **PocketFrame**, the same monochrome UI system used
-by PocketChat. Headers, square action buttons, typography, spacing, scrolling,
-errors, and confirmation states are drawn by the application instead of the
-firmware `OpenList` widget.
+The current interface uses **PocketFrame**, a monochrome UI system designed
+specifically for slow e-ink displays. Headers, square action buttons,
+typography, spacing, scrolling, errors, and confirmation states are drawn by
+the application instead of the firmware `OpenList` widget.
 
 ## Features
 
@@ -117,7 +117,7 @@ docker run --rm -v "$PWD:/workspace" pocketopds-builder
 
 ## PocketFrame UI
 
-PocketOPDS and PocketChat share these core layout values:
+PocketOPDS uses these core PocketFrame layout values:
 
 | Element | Value |
 |---|---:|

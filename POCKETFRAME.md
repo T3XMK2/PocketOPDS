@@ -1,6 +1,6 @@
 # PocketFrame in PocketOPDS
 
-PocketOPDS uses the same e-ink UI language as PocketChat:
+PocketOPDS uses the PocketFrame e-ink UI language:
 
 - monochrome surfaces with no gradients or shadows;
 - 16 px outer margins and inset black row rules;

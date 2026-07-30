@@ -13,9 +13,9 @@ server_t g_servers[MAX_SERVERS];
 int      g_server_count = 0;
 
 
-/* Keep generated files out of the applications root, consistently with
- * PocketChatData. OpenConfig may create auxiliary files next to the config,
- * so the whole directory is dedicated to PocketOPDS. */
+/* Keep generated files out of the applications root. OpenConfig may create
+ * auxiliary files next to the config, so the whole directory is dedicated
+ * to PocketOPDS. */
 #define DATA_DIR        FLASHDIR "/applications/PocketOPDSData"
 #define CFG_PATH        DATA_DIR "/settings.cfg"
 

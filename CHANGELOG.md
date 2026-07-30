@@ -1,10 +1,17 @@
 # Changelog
 
+## 2.0.1 — 2026-07-30
+
+### Changed
+
+- Made the PocketFrame documentation self-contained and product-independent.
+- Clarified release, installation, and local-data documentation.
+
 ## 2.0.0 — 2026-07-30
 
 ### Added
 
-- PocketFrame custom e-ink renderer shared conceptually with PocketChat.
+- PocketFrame custom e-ink renderer for native PocketBook applications.
 - Square header actions and consistent Back navigation.
 - Dedicated server management screen with explicit Edit and two-tap Delete.
 - Catalog search, pagination, metadata view, and bottom download action.
@@ -16,7 +23,7 @@
 ### Changed
 
 - Replaced firmware `OpenList` navigation with application-owned rendering.
-- Aligned typography, header geometry, margins, and row height with PocketChat.
+- Standardized typography, header geometry, margins, and row height.
 - Restored complete OPDS parsing and networking sources.
 - Improved Docker diagnostics in the PowerShell build script.
 
