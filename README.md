@@ -1,112 +1,188 @@
-﻿# PocketOPDS
+# PocketOPDS
 
-> A native OPDS catalog browser for PocketBook e-readers, built with the InkView SDK.
+PocketOPDS is a native OPDS catalog browser and book downloader for PocketBook
+e-readers. It is designed for slow e-ink displays, physical page keys, and
+touch interaction without requiring KOReader or a web browser.
 
-![Version](https://img.shields.io/badge/version-1.0.0-red)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Platform](https://img.shields.io/badge/platform-PocketBook%20InkView-green)
-
----
-
-## Overview
-
-PocketOPDS runs natively on PocketBook devices and lets you browse any OPDS server directly from your e-reader. Navigate catalogs, search by keyword, and download books straight to your library — without leaving the device.
-
----
+The current interface uses **PocketFrame**, the same monochrome UI system used
+by PocketChat. Headers, square action buttons, typography, spacing, scrolling,
+errors, and confirmation states are drawn by the application instead of the
+firmware `OpenList` widget.
 
 ## Features
 
-| Feature | Description |
-|---|---|
-| **Multi-server** | Add, edit, and delete multiple OPDS servers with per-server credentials |
-| **Catalog browsing** | Navigate category hierarchies with proper back/home navigation |
-| **Full-text search** | OpenSearch description URL support — works with Calibre, Kavita, and others |
-| **One-tap download** | Single-format books download immediately; multi-format shows a picker |
-| **Organized storage** | Books saved to `Books/<Author>/<Title>.<ext>` — same layout as Calibre |
-| **Instant library scan** | PocketBook library is updated immediately after each download |
-| **HTTP Basic Auth** | Per-server username and password, stored in the device config |
-| **Pagination** | Load-more row appends next page in-place without leaving the list |
+- Add and manage multiple OPDS servers.
+- Optional HTTP Basic Authentication.
+- Browse nested OPDS catalogs.
+- Search catalogs that expose OpenSearch.
+- Follow paginated feeds with **Load more**.
+- View book metadata and summaries.
+- Download EPUB, PDF, MOBI, FB2, and other supported formats.
+- Notify the PocketBook library scanner after a download.
+- Touch controls and physical navigation-key support.
+- Local configuration stored in a dedicated data directory.
 
----
-
-## Requirements
-
-- A PocketBook e-reader running firmware 6.x
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (to build)
-
-Developed and tested on the **PocketBook Verse Pro (B300, 300 DPI)**.
-
----
-
-## Build
-
-The build environment is fully containerized — the PocketBook SDK and ARM cross-compiler are installed automatically inside Docker.
-
-**First time only** (downloads the SDK, ~540 MB):
-```bash
-docker build -t pocketopds-builder .
-```
-
-**Compile:**
-```bash
-# Linux / macOS
-docker run --rm -v "$(pwd):/workspace" pocketopds-builder
-
-# Windows (PowerShell)
-docker run --rm -v "${PWD}:/workspace" pocketopds-builder
-```
-
-Output: `build/PocketOPDS.app`
-
----
+PocketOPDS has been developed primarily for the PocketBook Verse Pro and the
+PocketBook SDK 6.8/B300 toolchain.
 
 ## Installation
 
-1. Connect your PocketBook via USB.
-2. Copy `build/PocketOPDS.app` to the applications folder on the device:
-   ```
+1. Build or download `PocketOPDS.app`.
+2. Connect the PocketBook to the computer by USB.
+3. Copy the application to:
+
+   ```text
    /mnt/ext1/applications/PocketOPDS.app
    ```
-3. Safely eject the device.
-4. **PocketOPDS** will appear in the Applications section of the home screen.
 
----
+4. Safely disconnect the device and launch **PocketOPDS** from the Applications
+   screen.
 
-## Usage
+Only the `.app` file belongs in the Applications root. PocketOPDS creates its
+configuration directory automatically:
 
-1. Open **PocketOPDS** from Applications.
-2. Tap **+ Add server…** and enter a name, OPDS URL, and optional credentials.
-3. Tap a server to open its root catalog.
-4. Navigate categories, or tap the **Search** row if the server supports OpenSearch.
-5. Tap a book to download it — files go to `/mnt/ext1/Books/<Author>/`.
-6. Long-press a server row to **Edit** or **Delete** it.
+```text
+/mnt/ext1/applications/PocketOPDSData/
+└── settings.cfg
+```
 
----
+Older `PocketOPDS.cfg*` files are migrated into this directory on first launch.
+Downloaded books are stored in `/mnt/ext1/Books`.
 
-## Technical Notes
+## Adding a server
 
-- **Language**: C (C11), ~1700 lines across 8 source files
-- **SDK**: PocketBook InkView SDK 6.8 (B300)
-- **Networking**: libcurl (HTTPS, Basic Auth, redirect following)
-- **Parsing**: expat (namespace-aware Atom/OPDS XML)
-- **Config**: InkView key-value config API — stored at `/mnt/ext1/applications/PocketOPDS.cfg`
-- **Build system**: CMake + Docker (Ubuntu 22.04, arm-obreey-linux-gnueabi-gcc 6.3)
+Tap the `+` button and enter:
 
----
+1. Server name
+2. OPDS URL
+3. Username, if required
+4. Password, if required
 
-## Contributing
+For a Calibre Content Server on the same network, the URL normally looks like:
 
-Contributions, bug reports, and feature suggestions are welcome.
+```text
+http://192.168.1.12:8080/opds
+```
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -m 'Add your feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
+Use the computer's LAN address. `localhost` and `127.0.0.1` refer to the
+PocketBook itself and will not reach the computer.
 
----
+Tap a server row to open its catalog. Tap the square pencil button on the row
+to review, edit, or delete that server. Deletion requires a second tap on the
+highlighted trash button.
+
+## Building on Windows
+
+Requirements:
+
+- Docker Desktop
+- Docker Engine running with Linux containers
+
+Run:
+
+```text
+Build-PocketOPDS.cmd
+```
+
+The first build creates a Docker image containing the PocketBook SDK. Later
+builds reuse that cached image. The resulting application is written to:
+
+```text
+build/PocketOPDS.app
+```
+
+To recreate the SDK image:
+
+```powershell
+.\build.ps1 -Rebuild
+```
+
+## Building on Linux
+
+Extract the PocketBook SDK B300 6.8, point `PBSDK` to the directory containing
+`SDK-B300-6.8`, then run:
+
+```bash
+export PBSDK=/opt/pocketbook-sdk
+chmod +x build.sh
+./build.sh
+```
+
+Alternatively, use the Dockerfile directly:
+
+```bash
+docker build -t pocketopds-builder .
+docker run --rm -v "$PWD:/workspace" pocketopds-builder
+```
+
+## PocketFrame UI
+
+PocketOPDS and PocketChat share these core layout values:
+
+| Element | Value |
+|---|---:|
+| Outer margin | 16 px |
+| Header action | 64 × 64 px |
+| Action gap | 8 px |
+| Standard row | 88 px |
+| Body font | screen height / 52, clamped to 22–42 px |
+| Small font | body font − 7 px, minimum 18 px |
+| Title font | body font + 8 px, bold |
+| Header height | body font × 2 + 28 px |
+
+The firmware panel is disabled with `SetPanelType(0)` so the renderer uses the
+real framebuffer origin and avoids blank or wrapped bands on first launch.
+See [POCKETFRAME.md](POCKETFRAME.md) for the design rules.
+
+## Project structure
+
+```text
+src/
+├── pocketopds_ui.cpp  Custom PocketFrame renderer and navigation
+├── config.c/.h        Persistent server configuration and migration
+├── net.c/.h           Wi-Fi and libcurl networking
+└── opds.c/.h          OPDS/Atom parsing and URL resolution
+```
+
+The repository contains only the active custom renderer; the obsolete
+`OpenList` implementation has been removed.
+
+## Local data and privacy
+
+PocketOPDS does not upload its configuration anywhere. Server addresses and
+optional credentials are stored locally in:
+
+```text
+/mnt/ext1/applications/PocketOPDSData/settings.cfg
+```
+
+Credentials are stored as plain text because the PocketBook InkView
+configuration API does not provide a secure credential store. Treat the device
+and its USB storage as sensitive if authenticated OPDS servers are configured.
+
+## Troubleshooting
+
+### The server works on the computer but not on PocketBook
+
+- Confirm both devices are connected to the same LAN.
+- Test the OPDS URL from a phone on the same Wi-Fi.
+- Allow the server's TCP port through the computer firewall for private/local
+  networks.
+- Avoid guest Wi-Fi networks that isolate clients.
+- Use the computer's LAN IP, not `localhost`.
+
+### A keyboard closes immediately
+
+Current builds suspend application repainting while the InkView keyboard is
+active and defer transitions between fields. Rebuild and replace the `.app` if
+an older build still shows this behavior.
+
+### The first screen is shifted or has a blank strip
+
+Current builds disable the PocketBook firmware panel before measuring and
+drawing the interface. Make sure the installed `.app` is the latest build.
 
 ## License
 
-Distributed under the **MIT License**. See [LICENSE](LICENSE) for full terms.
-
+No license file is currently included. Add an explicit license before
+redistributing modified builds or accepting external contributions.

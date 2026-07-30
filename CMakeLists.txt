@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
-project(PocketOPDS C)
+project(PocketOPDS C CXX)
+
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 
 # ---- SDK sysroot paths (set by toolchain file) ---------------------------------
 set(PBSDK_SYSROOT "${CMAKE_SYSROOT}")
+
 
 include_directories(
     ${PBSDK_SYSROOT}/usr/local/include   # inkview.h
@@ -13,24 +18,25 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src              # project headers
 )
 
+
 link_directories(
     ${PBSDK_SYSROOT}/usr/local/lib       # libinkview.so
     ${PBSDK_SYSROOT}/usr/lib
     ${PBSDK_SYSROOT}/lib
 )
 
+
 # ---- Source files --------------------------------------------------------------
 set(SOURCES
-    src/main.c
+    src/pocketopds_ui.cpp
     src/config.c
     src/net.c
     src/opds.c
-    src/screen_servers.c
-    src/screen_catalog.c
-    src/screen_detail.c
 )
 
+
 add_executable(PocketOPDS ${SOURCES})
+
 
 # ---- Linked libraries ----------------------------------------------------------
 target_link_libraries(PocketOPDS
@@ -40,6 +46,7 @@ target_link_libraries(PocketOPDS
     pthread
     m
 )
+
 
 # ---- ARM compile flags ---------------------------------------------------------
 target_compile_options(PocketOPDS PRIVATE
@@ -52,8 +59,10 @@ target_compile_options(PocketOPDS PRIVATE
     -Wno-unused-parameter
 )
 
+
 # ---- Output as .app (PocketBook expects this extension) ------------------------
 set_target_properties(PocketOPDS PROPERTIES OUTPUT_NAME "PocketOPDS.app")
+
 
 # ---- Runtime library search path on the device --------------------------------
 # PocketBook firmware keeps shared libs in /usr/lib and /usr/local/lib.
@@ -64,5 +73,6 @@ target_link_options(PocketOPDS PRIVATE
     -Wl,-rpath,/usr/local/lib
     -Wl,-rpath,/lib
 )
+
 
 install(TARGETS PocketOPDS DESTINATION applications)
