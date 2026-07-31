@@ -1,6 +1,18 @@
 cmake_minimum_required(VERSION 3.10)
 project(PocketOPDS C CXX)
 
+set(_POCKETFRAME_DEFAULT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/PocketFrame")
+if(NOT EXISTS "${_POCKETFRAME_DEFAULT}/CMakeLists.txt")
+    set(_POCKETFRAME_DEFAULT "${CMAKE_CURRENT_SOURCE_DIR}/../PocketFrame")
+endif()
+set(POCKETFRAME_SOURCE_DIR
+    "${_POCKETFRAME_DEFAULT}" CACHE PATH
+    "Path to the PocketFrame source tree")
+if(NOT TARGET PocketFrame::pocketframe)
+    add_subdirectory("${POCKETFRAME_SOURCE_DIR}"
+                     "${CMAKE_BINARY_DIR}/pocketframe")
+endif()
+
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -40,6 +52,7 @@ add_executable(PocketOPDS ${SOURCES})
 
 # ---- Linked libraries ----------------------------------------------------------
 target_link_libraries(PocketOPDS
+    PocketFrame::pocketframe
     inkview     # InkView UI / system API
     curl        # libcurl  (HTTP, auth, HTTPS)
     expat       # Expat    (XML/Atom parsing)

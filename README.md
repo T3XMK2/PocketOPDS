@@ -4,8 +4,9 @@ PocketOPDS is a native OPDS catalog browser and book downloader for PocketBook
 e-readers. It is designed for slow e-ink displays, physical page keys, and
 touch interaction without requiring KOReader or a web browser.
 
-The current interface uses **PocketFrame**, a monochrome UI system designed
-specifically for slow e-ink displays. Headers, square action buttons,
+The current interface uses
+[PocketFrame](https://github.com/T3XMK2/PocketFrame), a shared monochrome UI
+system designed specifically for slow e-ink displays. Headers, square action buttons,
 typography, spacing, scrolling, errors, and confirmation states are drawn by
 the application instead of the firmware `OpenList` widget.
 
@@ -72,6 +73,14 @@ to review, edit, or delete that server. Deletion requires a second tap on the
 highlighted trash button.
 
 ## Building on Windows
+
+Clone the repository with its PocketFrame dependency:
+
+```sh
+git clone --recurse-submodules https://github.com/T3XMK2/PocketOPDS.git
+```
+
+For an existing clone, run `git submodule update --init --recursive` first.
 
 Requirements:
 

@@ -20,6 +20,11 @@ $ErrorActionPreference = "Stop"
 
 $ImageName = "pocketopds-builder"
 $ProjectDir = $PSScriptRoot
+$PocketFrameCandidate = Join-Path $ProjectDir "vendor\PocketFrame"
+if (-not (Test-Path -LiteralPath (Join-Path $PocketFrameCandidate "CMakeLists.txt"))) {
+    $PocketFrameCandidate = Join-Path $ProjectDir "..\PocketFrame"
+}
+$PocketFrameDir = Resolve-Path $PocketFrameCandidate
 
 
 # ── Check Docker ──────────────────────────────────────────────────────────────
@@ -85,10 +90,13 @@ Write-Host "=== Running cross-compilation ===" -ForegroundColor Cyan
 # Convert Windows path to forward-slash format for Docker bind-mount
 $mountPath = $ProjectDir -replace '\\', '/'
 $mountPath = $mountPath -replace '^([A-Za-z]):', '/$1'  # e.g. D: -> /d
+$pocketFrameMount = $PocketFrameDir.Path -replace '\\', '/'
+$pocketFrameMount = $pocketFrameMount -replace '^([A-Za-z]):', '/$1'
 
 
 docker run --rm `
     -v "${mountPath}:/workspace" `
+    -v "${pocketFrameMount}:/pocketframe:ro" `
     $ImageName
 
 

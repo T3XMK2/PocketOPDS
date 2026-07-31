@@ -59,6 +59,7 @@ CMD ["bash", "-c", \
      && cmake -B /build \
               -DCMAKE_TOOLCHAIN_FILE=/workspace/toolchain-arm.cmake \
               -DCMAKE_BUILD_TYPE=Release \
+              -DPOCKETFRAME_SOURCE_DIR=/pocketframe \
      && cmake --build /build --parallel \
      && mkdir -p /workspace/build \
      && cp /build/PocketOPDS.app /workspace/build/PocketOPDS.app \
