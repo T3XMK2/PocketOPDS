@@ -1,4 +1,5 @@
 #include <inkview.h>
+#include <pocketframe.h>
 
 extern "C" {
 #include "config.h"
@@ -16,14 +17,12 @@ extern "C" {
 namespace {
 
 enum Screen { SERVERS, SERVER_ACTIONS, CATALOG, DETAIL, ERROR_SCREEN };
-enum Icon { BACK_ICON, ADD_ICON, EDIT_ICON, DELETE_ICON, SEARCH_ICON };
 enum EditStep { EDIT_NONE, EDIT_NAME, EDIT_URL, EDIT_USER, EDIT_PASS };
 
-const int MARGIN = 16;
-const int RAIL = 6;
-const int ACTION = 64;
-const int GAP = 8;
-const int ROW = 88;
+const int MARGIN = PF_OUTER_MARGIN;
+const int ACTION = PF_ACTION_SIZE;
+const int GAP = PF_ACTION_GAP;
+const int ROW = PF_STANDARD_ROW_HEIGHT;
 
 struct CatalogPage {
     int server;
@@ -39,6 +38,7 @@ public:
             selectedServer(-1), selectedEntry(-1), editStep(EDIT_NONE),
             body(NULL), bold(NULL), small(NULL), titleFont(NULL), loading(false),
             confirmDelete(false), keyboardOpen(false) {
+        std::memset(&ui, 0, sizeof(ui));
         name[0] = url[0] = user[0] = pass[0] = 0;
         searchText[0] = 0;
     }
@@ -77,10 +77,7 @@ public:
         }
         if (type == EVT_EXIT) {
             clearCatalogs();
-            if (body) CloseFont(body);
-            if (bold) CloseFont(bold);
-            if (small) CloseFont(small);
-            if (titleFont) CloseFont(titleFont);
+            pf_destroy(&ui);
             body = bold = small = titleFont = NULL;
             net_cleanup();
             return 1;
@@ -303,86 +300,63 @@ private:
     char name[MAX_NAME_LEN], url[MAX_URL_LEN];
     char user[MAX_CRED_LEN], pass[MAX_CRED_LEN];
     char searchText[OPDS_MAX_TITLE];
+    pf_context ui;
 
     static int rightX(int position) {
-        return ScreenWidth() - MARGIN - ACTION - position * (ACTION + GAP);
+        pf_context geometry = {};
+        geometry.screen_width = ScreenWidth();
+        return pf_right_action_x(&geometry, position);
     }
 
     void layout() {
         int w = ScreenWidth(), h = ScreenHeight();
         if (w < 400 || h < 600) return;
         if (w == width && h == height && body) return;
-        if (body) CloseFont(body);
-        if (bold) CloseFont(bold);
-        if (small) CloseFont(small);
-        if (titleFont) CloseFont(titleFont);
+        pf_destroy(&ui);
         width = w; height = h;
-        int fs = std::max(22, std::min(42, height / 52));
-        body = OpenFont(DEFAULTFONT, fs, 1);
-        bold = OpenFont(DEFAULTFONTB, fs, 1);
-        small = OpenFont(DEFAULTFONT, std::max(18, fs - 7), 1);
-        titleFont = OpenFont(DEFAULTFONTB, fs + 8, 1);
-        headerH = fs * 2 + 28;
-    }
-
-    void iconButton(int x, Icon icon, bool filled = false) {
-        int y = 14, cx = x + ACTION / 2, cy = y + ACTION / 2;
-        if (filled) FillArea(x, y, ACTION, ACTION, BLACK);
-        else DrawRect(x, y, ACTION, ACTION, BLACK);
-        int c = filled ? WHITE : BLACK;
-        if (icon == BACK_ICON) {
-            DrawLine(cx + 12, cy - 14, cx - 10, cy, c);
-            DrawLine(cx - 10, cy, cx + 12, cy + 14, c);
-            DrawLine(cx - 9, cy, cx + 16, cy, c);
-        } else if (icon == ADD_ICON) {
-            DrawLine(cx - 14, cy, cx + 14, cy, c);
-            DrawLine(cx, cy - 14, cx, cy + 14, c);
-        } else if (icon == EDIT_ICON) {
-            DrawLine(cx - 13, cy + 12, cx + 10, cy - 11, c);
-            DrawLine(cx - 8, cy + 15, cx + 15, cy - 8, c);
-        } else if (icon == DELETE_ICON) {
-            DrawRect(cx - 11, cy - 8, 22, 23, c);
-            DrawLine(cx - 15, cy - 13, cx + 15, cy - 13, c);
-        } else {
-            DrawRect(cx - 13, cy - 13, 22, 22, c);
-            DrawLine(cx + 7, cy + 7, cx + 16, cy + 16, c);
-        }
+        if (!pf_init(&ui, width, height)) return;
+        body = ui.body_font;
+        bold = ui.body_bold_font;
+        small = ui.small_font;
+        titleFont = ui.title_font;
+        headerH = ui.header_height;
     }
 
     void header(const char *title, const char *subtitle) {
-        FillArea(0, 14, RAIL, headerH - 28, BLACK);
-        int left = screen == SERVERS ? 22 : 96;
-        SetFont(titleFont, BLACK);
-        DrawString(left, 15, title);
-        SetFont(small, BLACK);
-        if (subtitle && subtitle[0]) DrawString(left + 2, headerH - 29, subtitle);
-        DrawLine(0, headerH - 1, width, headerH - 1, BLACK);
-        if (screen != SERVERS) iconButton(MARGIN, BACK_ICON);
-        if (screen == SERVERS) iconButton(rightX(0), ADD_ICON);
+        pf_header_action actions[2];
+        int count = 0;
+        if (screen == SERVERS) {
+            actions[count++] = pf_header_action{ PF_ICON_ADD,
+                PF_CONTROL_OUTLINED, 0 };
+        }
         else if (screen == SERVER_ACTIONS) {
-            iconButton(rightX(1), EDIT_ICON);
-            iconButton(rightX(0), DELETE_ICON, confirmDelete);
+            actions[count++] = pf_header_action{ PF_ICON_EDIT,
+                PF_CONTROL_OUTLINED, 1 };
+            actions[count++] = pf_header_action{ PF_ICON_DELETE,
+                confirmDelete ? PF_CONTROL_FILLED : PF_CONTROL_OUTLINED, 0 };
         } else if (screen == CATALOG && !pages.empty() && pages.back().feed &&
                    pages.back().feed->search_url[0]) {
-            iconButton(rightX(0), SEARCH_ICON);
+            actions[count++] = pf_header_action{ PF_ICON_SEARCH,
+                PF_CONTROL_OUTLINED, 0 };
         }
+        pf_draw_header(&ui, title, subtitle, screen != SERVERS,
+                       actions, count);
     }
 
     void rowBase(int y, bool navigation) {
-        FillArea(MARGIN, y + 28, navigation ? RAIL : 8,
-                 navigation ? 32 : 8, BLACK);
-        DrawLine(MARGIN, y + ROW - 1, width - MARGIN, y + ROW - 1, BLACK);
+        pf_draw_row_base(&ui, y, ROW,
+                         navigation ? PF_ROW_RAIL : PF_ROW_MARK);
     }
 
     void draw() {
         if (!body || width == 0) return;
-        ClearScreen();
+        pf_begin_frame(&ui);
         if (screen == SERVERS) drawServers();
         else if (screen == SERVER_ACTIONS) drawServerActions();
         else if (screen == CATALOG) drawCatalog();
         else if (screen == DETAIL) drawDetail();
         else drawError();
-        FullUpdate();
+        pf_end_frame_full(&ui);
     }
 
     void drawServers() {
@@ -485,20 +459,13 @@ private:
                      height - headerH - 190,
                      e.summary[0] ? e.summary : "No description available.",
                      ALIGN_LEFT | VALIGN_TOP);
-        int y = height - 86;
-        FillArea(MARGIN, y, width - MARGIN * 2, 58, BLACK);
-        SetFont(body, WHITE);
-        DrawTextRect(MARGIN, y, width - MARGIN * 2, 58,
-                     loading ? "Downloading" : "Download",
-                     ALIGN_CENTER | VALIGN_MIDDLE);
+        pf_draw_bottom_action(&ui,
+                              loading ? "Downloading" : "Download",
+                              PF_CONTROL_FILLED);
     }
 
     void drawError() {
-        header(errorTitle.c_str(), "The operation did not complete");
-        SetFont(body, BLACK);
-        DrawTextRect(24, headerH + 35, width - 48,
-                     height - headerH - 60, errorText.c_str(),
-                     ALIGN_LEFT | VALIGN_TOP);
+        pf_draw_error_screen(&ui, errorTitle.c_str(), errorText.c_str(), 1);
     }
 
     void tap(int x, int y) {
@@ -703,10 +670,6 @@ public:
 
 App *App::instance = NULL;
 App app;
-
-void keyboardCallback(char *text) { App::keyboardCallback(text); }
-void loadTimer() { App::loadTimer(); }
-void downloadTimer() { App::downloadTimer(); }
 
 int handler(int type, int p1, int p2) { return app.event(type, p1, p2); }
 

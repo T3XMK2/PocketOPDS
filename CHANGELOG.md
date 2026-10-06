@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.0 — 2026-07-31
+
+### Changed
+
+- Replaced the application-owned renderer, font lifecycle, icons, rows, and
+  bottom action with the shared PocketFrame 1.0 library.
+- Added PocketFrame as a pinned repository dependency.
+- Updated Docker and Windows builds to compile the shared library.
+
+### Fixed
+
+- Removed obsolete callback wrappers that generated compiler warnings.
+
 ## 2.0.1 — 2026-07-30
 
 ### Changed
